@@ -1222,7 +1222,7 @@ def _mini_batch_step(X, sample_weight, x_squared_norms, centers, weight_sums,
 
             # inplace sum with new points members of this cluster
             centers[center_idx] += \
-                np.sum(X[center_mask] *
+                np.sum(fitting_weights[center_mask] * X[center_mask] *
                        sample_weight[center_mask, np.newaxis], axis=0)
 
             # update the count statistics for this center
@@ -1528,6 +1528,9 @@ class MiniBatchKMeans(KMeans):
 
         validation_indices = random_state.randint(0, n_samples, init_size)
         X_valid = X[validation_indices]
+        if self.fitting_weights is None:
+            self.fitting_weights = np.ones(X.shape[0])
+        fitting_valid = self.fitting_weights[validation_indices].reshape((-1,1))
         sample_weight_valid = sample_weight[validation_indices]
         x_squared_norms_valid = x_squared_norms[validation_indices]
 
@@ -1555,7 +1558,7 @@ class MiniBatchKMeans(KMeans):
                 X_valid, sample_weight_valid,
                 x_squared_norms[validation_indices], cluster_centers,
                 weight_sums, old_center_buffer, False, distances=None,
-                verbose=self.verbose,fitting_weights=self.fitting_weights)
+                verbose=self.verbose,fitting_weights=fitting_valid)
 
             # Keep only the best cluster centers across independent inits on
             # the common validation set
@@ -1595,7 +1598,7 @@ class MiniBatchKMeans(KMeans):
                                  % (10 + int(self.counts_.min())) == 0),
                 random_state=random_state,
                 reassignment_ratio=self.reassignment_ratio,
-                verbose=self.verbose, fitting_weights=self.fitting_weights)
+                verbose=self.verbose, fitting_weights=self.fitting_weights[minibatch_indices].reshape((-1,1)))
 
             # Monitor convergence and do early stopping if necessary
             if _mini_batch_convergence(
