@@ -410,7 +410,7 @@ def _estimate_log_gaussian_prob(X, means, precisions_chol, covariance_type, fitt
         log_prob = np.empty((n_samples, n_components))
         for k, (mu, prec_chol) in enumerate(zip(means, precisions_chol)):
             y = np.dot(X, prec_chol) - np.dot(mu, prec_chol)
-            log_prob[:, k] = fitting_weights*np.sum(np.square(y), axis=1)
+            log_prob[:, k] = fitting_weights*np.sum(np.square(y), axis=1)/fitting_weights.mean()
 
     elif covariance_type == 'tied':
         log_prob = np.empty((n_samples, n_components))
