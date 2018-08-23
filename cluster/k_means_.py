@@ -1528,8 +1528,8 @@ class MiniBatchKMeans(KMeans):
 
         validation_indices = random_state.randint(0, n_samples, init_size)
         X_valid = X[validation_indices]
-        if self.fitting_weights is None:
-            self.fitting_weights = np.ones(X.shape[0])
+        #if self.fitting_weights is None: #FIXME
+        self.fitting_weights = np.ones(X.shape[0])
         fitting_valid = self.fitting_weights[validation_indices].reshape((-1,1))
         sample_weight_valid = sample_weight[validation_indices]
         x_squared_norms_valid = x_squared_norms[validation_indices]

@@ -11,7 +11,9 @@ def compute_gmm(x,k=2,w=None,iter_max=10000,i_tol=1e-9,e_tol=1e-3):
     if w is None:
         w = np.ones(x.shape[0])
     km.fit(x)
+    labels = km.labels_
     mu = km.cluster_centers_
+    
     sigma = []
     for i in range(k):
         new_sigma = np.identity(x.shape[1])*i_tol
@@ -26,11 +28,17 @@ def compute_gmm(x,k=2,w=None,iter_max=10000,i_tol=1e-9,e_tol=1e-3):
     for iternum in range(iter_max):
         # e-step
         gamma = np.zeros(shape=(x.shape[0],k))
-        for i in range(k):
-            gamma_i = w * pi[i]*mvn_pdf.pdf(x,mean=mu[i],cov=sigma[i])
-            gamma[:,i] = gamma_i
-        gamma = gamma/gamma.sum(1,keepdims=True)
+        g2 = np.zeros(shape=(x.shape[0],k))
 
+        for i in range(k):
+            gamma_i = pi[i]*mvn_pdf.pdf(x,mean=mu[i],cov=sigma[i])
+            gamma[:,i] = gamma_i
+            g2[:,i] = pi[i]*mvn_pdf.pdf(x,mean=mu[i],cov=sigma[i])
+        g2 = np.copy(gamma)
+        #gamma = w.reshape((-1,1)) * gamma
+        gamma = gamma/gamma.sum(1,keepdims=True)
+        g2 = g2/g2.sum(1,keepdims=True)
+        print(np.linalg.norm(gamma-g2),gamma.shape,w.shape)
         # m-step
         for i in range(k):
             new_mu = np.zeros(x.shape[1])
@@ -73,11 +81,12 @@ def get_centroids(mesh):
 coma,aa = get_centroids(mesh0)
 com,a = get_centroids(mesh1)
 
-a = a/a.min()
+a = a#/a.min()
 aa = aa/aa.min()
 #verts = mesh2.vertices#[np.random.choice(mesh2.vertices.shape[0], com.shape[0], replace=False), :]
-#res  = compute_gmm(com,100,a)
+res  = compute_gmm(com,100,a)
 #res2 = compute_gmm(verts,100)
+raise
 with open('bunny_fit_extra2.log','w') as fout:
     for km in [6,12,25,50,100,200,400,800]:
         for init in ['random']:

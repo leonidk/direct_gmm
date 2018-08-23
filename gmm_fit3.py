@@ -43,7 +43,7 @@ with open('bunny_fit_extra7.log','w') as fout:
                     #print(gm2.n_iter_,gm3.n_iter_)
                     #print(s0,s1)
                     #print(s2,s3)
-                    print('.')
+                    print('.',end='')
                     fout.write("{},{},{},{},{},{}\n".format(km,init,'0',s0,gm0.n_iter_,scale))
                     #fout.write("{},{},{},{},{}\n".format(km,init,'1',s1,gm1.n_iter_))
                     #fout.write("{},{},{},{},{}\n".format(km,init,'2',s2,gm2.n_iter_))

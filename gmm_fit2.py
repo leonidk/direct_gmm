@@ -21,15 +21,13 @@ def get_centroids(mesh):
 
 com,a = get_centroids(mesh0)
 
-a = a/a.min()
-
-with open('bunny_fit_extra4.log','w') as fout:
-    for km in [6,12,25,50,100,200,400]:
+with open('bunny_fit_extra_tri-25iter.log','w') as fout:
+    for km in [12,25,50,100,200]:
         for init in ['kmeans','random']:
             for exp_n in range(8):
-                gm0 = GaussianMixture(km,init_params=init,fitting_weights=a,max_iter=25,tol=1e-4); gm0.fit(com)
-                gm1 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm1.fit(com)
-                gm2 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm2.fit(mesh0.vertices)
+                gm0 = GaussianMixture(km,init_params=init,fitting_weights=a,max_iter=25); gm0.fit(com)
+                gm1 = GaussianMixture(km,init_params=init,max_iter=25); gm1.fit(com)
+                gm2 = GaussianMixture(km,init_params=init,max_iter=25); gm2.fit(mesh0.vertices)
                 #gm3 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm3.fit(mesh2.vertices)
 
                 #gm3 = GaussianMixture(100); gm3.fit(mesh4.vertices)
@@ -43,12 +41,12 @@ with open('bunny_fit_extra4.log','w') as fout:
                 #print(gm2.n_iter_,gm3.n_iter_)
                 #print(s0,s1)
                 #print(s2,s3)
-                print('.')
+                print('.',end='',flush=True)
                 fout.write("{},{},{},{},{}\n".format(km,init,'0',s0,gm0.n_iter_))
                 fout.write("{},{},{},{},{}\n".format(km,init,'1',s1,gm1.n_iter_))
                 fout.write("{},{},{},{},{}\n".format(km,init,'2',s2,gm2.n_iter_))
                 #fout.write("{},{},{},{},{}\n".format(km,init,'3',s3,gm3.n_iter_))
-
+print('')
 #print(gm1.aic(mesh4.vertices),gm2.aic(mesh4.vertices))#,gm3.aic(mesh4.vertices))
 
 #print((res[2] >0).sum(),(res2[2] >0).sum())
