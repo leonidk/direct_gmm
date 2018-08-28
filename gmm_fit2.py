@@ -20,14 +20,14 @@ def get_centroids(mesh):
     return centroids, areas
 
 com,a = get_centroids(mesh0)
-
+a = a/a.min()
 with open('bunny_fit_extra_tri-25iter.log','w') as fout:
-    for km in [12,25,50,100,200]:
+    for km in [12,25,50,100]:
         for init in ['kmeans','random']:
             for exp_n in range(8):
-                gm0 = GaussianMixture(km,init_params=init,fitting_weights=a,max_iter=25); gm0.fit(com)
-                gm1 = GaussianMixture(km,init_params=init,max_iter=25); gm1.fit(com)
-                gm2 = GaussianMixture(km,init_params=init,max_iter=25); gm2.fit(mesh0.vertices)
+                gm0 = GaussianMixture(km,init_params=init,fitting_weights=a,max_iter=25,tol=1e-6); gm0.fit(com)
+                gm1 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-6); gm1.fit(com)
+                gm2 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-6); gm2.fit(mesh0.vertices)
                 #gm3 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm3.fit(mesh2.vertices)
 
                 #gm3 = GaussianMixture(100); gm3.fit(mesh4.vertices)

@@ -276,9 +276,8 @@ def _estimate_gaussian_parameters(X, resp, reg_covar, covariance_type,fiting_wei
         The covariance matrix of the current components.
         The shape depends of the covariance_type.
     """
-    resp = np.copy(resp) * (fiting_weights.reshape((-1,1))/fiting_weights.mean())
+    #resp = np.copy(resp) * (fiting_weights.reshape((-1,1))/fiting_weights.mean())
     nk = resp.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
-    f2 = fiting_weights/fiting_weights.sum()
     #print(resp.shape,nk.shape)
     means = np.dot(resp.T, X) / nk[:, np.newaxis]
     covariances = {"full": _estimate_gaussian_covariances_full,
@@ -437,7 +436,7 @@ def _estimate_log_gaussian_prob(X, means, precisions_chol, covariance_type, fitt
     #print(log_det.shape,n_features,log_prob.shape)
     #+ weight_term.reshape((-1,1)).sum
     #weight_term.reshape((-1,1))*
-    return (-.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det)
+    return weight_term.reshape((-1,1))*(-.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det)
 
 
 class GaussianMixture(BaseMixture):

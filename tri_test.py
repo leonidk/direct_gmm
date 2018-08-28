@@ -47,4 +47,8 @@ covar = np.abs(covar.T.dot(covar))
 
 s = np.random.multivariate_normal(u,covar,500)
 ax.scatter(s[:,0],s[:,1],s[:,2])
+l1 = js/2*mvg.pdf((A+B+C)/3.0,u,covar)
+l2 = js/2*mvg.pdf((A+B+C)/3.0,u,covar)
+
+print(l1)
 plt.show()
