@@ -407,9 +407,7 @@ def _estimate_log_gaussian_prob(X, means, precisions_chol, covariance_type, fitt
     # det(precision_chol) is half of det(precision)
     log_det = _compute_log_det_cholesky(
         precisions_chol, covariance_type, n_features)
-    weight_vec = fitting_weights/fitting_weights.min()
-    weight_norm = 1.0#/weight_vec.mean()
-    weight_term = weight_vec * weight_norm
+
     if covariance_type == 'full':
         log_prob = np.empty((n_samples, n_components))
         for k, (mu, prec_chol) in enumerate(zip(means, precisions_chol)):
@@ -436,7 +434,7 @@ def _estimate_log_gaussian_prob(X, means, precisions_chol, covariance_type, fitt
     #print(log_det.shape,n_features,log_prob.shape)
     #+ weight_term.reshape((-1,1)).sum
     #weight_term.reshape((-1,1))*
-    return weight_term.reshape((-1,1))*(-.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det)
+    return fitting_weights.reshape((-1,1))*(-.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det)
 
 
 class GaussianMixture(BaseMixture):
