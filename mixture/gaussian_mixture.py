@@ -607,6 +607,7 @@ class GaussianMixture(BaseMixture):
         self.means_init = means_init
         self.precisions_init = precisions_init
         self.fitting_weights = fitting_weights
+        self.tris = None
 
     def _check_parameters(self, X):
         """Check the Gaussian mixture parameters are well defined."""
@@ -666,6 +667,8 @@ class GaussianMixture(BaseMixture):
                                                         lower=True)
         else:
             self.precisions_cholesky_ = self.precisions_init
+    def set_triangles(self, tris):
+        self.tris = tris
 
     def _m_step(self, X, log_resp):
         """M step.
