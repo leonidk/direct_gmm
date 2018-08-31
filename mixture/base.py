@@ -73,7 +73,7 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
 
     def __init__(self, n_components, tol, reg_covar,
                  max_iter, n_init, init_params, random_state, warm_start,
-                 verbose, verbose_interval,fitting_weights=None):
+                 verbose, verbose_interval):
         self.n_components = n_components
         self.tol = tol
         self.reg_covar = reg_covar
@@ -84,7 +84,6 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
         self.warm_start = warm_start
         self.verbose = verbose
         self.verbose_interval = verbose_interval
-        self.fitting_weights = fitting_weights
 
     def _check_initial_parameters(self, X):
         """Check values of the basic parameters.

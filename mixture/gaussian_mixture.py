@@ -140,7 +140,7 @@ def _check_precisions(precisions, covariance_type, n_components, n_features):
 ###############################################################################
 # Gaussian mixture parameters estimators (used by the M-Step)
 
-def _estimate_gaussian_covariances_full(resp, X, nk, means, reg_covar,fiting_weights,tris):
+def _estimate_gaussian_covariances_full(resp, X, nk, means, reg_covar,areas=None,tris=None):
     """Estimate the full covariance matrices.
 
     Parameters
@@ -186,7 +186,7 @@ def _estimate_gaussian_covariances_full(resp, X, nk, means, reg_covar,fiting_wei
         return covariances
 
 
-def _estimate_gaussian_covariances_tied(resp, X, nk, means, reg_covar,fiting_weights,tris):
+def _estimate_gaussian_covariances_tied(resp, X, nk, means, reg_covar,areas,tris):
     """Estimate the tied covariance matrix.
 
     Parameters
@@ -214,7 +214,7 @@ def _estimate_gaussian_covariances_tied(resp, X, nk, means, reg_covar,fiting_wei
     return covariance
 
 
-def _estimate_gaussian_covariances_diag(resp, X, nk, means, reg_covar,fiting_weights,tris):
+def _estimate_gaussian_covariances_diag(resp, X, nk, means, reg_covar,areas,tris):
     """Estimate the diagonal covariance vectors.
 
     Parameters
@@ -240,7 +240,7 @@ def _estimate_gaussian_covariances_diag(resp, X, nk, means, reg_covar,fiting_wei
     return avg_X2 - 2 * avg_X_means + avg_means2 + reg_covar
 
 
-def _estimate_gaussian_covariances_spherical(resp, X, nk, means, reg_covar,fiting_weights,tris):
+def _estimate_gaussian_covariances_spherical(resp, X, nk, means, reg_covar,areas,tris):
     """Estimate the spherical variance values.
 
     Parameters
@@ -261,10 +261,10 @@ def _estimate_gaussian_covariances_spherical(resp, X, nk, means, reg_covar,fitin
         The variance values of each components.
     """
     return _estimate_gaussian_covariances_diag(resp, X, nk,
-                                               means, reg_covar,fiting_weights,tris).mean(1)
+                                               means, reg_covar,areas,tris).mean(1)
 
 
-def _estimate_gaussian_parameters(X, resp, reg_covar, covariance_type,fiting_weights,tris=None,areas=None):
+def _estimate_gaussian_parameters(X, resp, reg_covar, covariance_type,areas=None,tris=None):
     """Estimate the Gaussian distribution parameters.
 
     Parameters
@@ -293,7 +293,7 @@ def _estimate_gaussian_parameters(X, resp, reg_covar, covariance_type,fiting_wei
         The covariance matrix of the current components.
         The shape depends of the covariance_type.
     """
-    if areas is None:
+    if tris is None:
         #resp = np.copy(resp) * (fiting_weights.reshape((-1,1))/fiting_weights.mean())
         nk = resp.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
         #print(nk.shape,resp.shape,areas[:,np.newaxis].shape)
@@ -303,7 +303,7 @@ def _estimate_gaussian_parameters(X, resp, reg_covar, covariance_type,fiting_wei
                     "tied": _estimate_gaussian_covariances_tied,
                     "diag": _estimate_gaussian_covariances_diag,
                     "spherical": _estimate_gaussian_covariances_spherical
-                    }[covariance_type](resp, X, nk, means, reg_covar,fiting_weights,tris)
+                    }[covariance_type](resp, X, nk, means, reg_covar,areas,tris)
     else:
         new_resp = resp * areas[:,np.newaxis]
         new_resp = new_resp * (resp.sum()/new_resp.sum())
@@ -320,7 +320,7 @@ def _estimate_gaussian_parameters(X, resp, reg_covar, covariance_type,fiting_wei
                     "tied": _estimate_gaussian_covariances_tied,
                     "diag": _estimate_gaussian_covariances_diag,
                     "spherical": _estimate_gaussian_covariances_spherical
-                    }[covariance_type](new_resp, X, nk, means, reg_covar,fiting_weights,tris)
+                    }[covariance_type](new_resp, X, nk, means, reg_covar,areas,tris)
     return nk, means, covariances
 
 
@@ -416,7 +416,7 @@ def _compute_log_det_cholesky(matrix_chol, covariance_type, n_features):
     return log_det_chol
 
 
-def _estimate_log_gaussian_prob(X, means, precisions_chol, covariance_type, fitting_weights,tris=None):
+def _estimate_log_gaussian_prob(X, means, precisions_chol, covariance_type, areas,tris=None):
     """Estimate the log Gaussian probability.
 
     Parameters
@@ -447,8 +447,7 @@ def _estimate_log_gaussian_prob(X, means, precisions_chol, covariance_type, fitt
     if covariance_type == 'full':
         log_prob = np.empty((n_samples, n_components))
         for k, (mu, prec_chol) in enumerate(zip(means, precisions_chol)):
-           # print(fitting_weights.reshape((-1,1)).dot(prec_chol).shape)
-            y =  (np.dot(X, prec_chol) - np.dot(mu, prec_chol)) #fitting_weights.reshape((-1,1)).dot(prec_chol) *
+            y =  (np.dot(X, prec_chol) - np.dot(mu, prec_chol)) 
             log_prob[:, k] = np.sum(np.square(y), axis=1)
     elif covariance_type == 'tied':
         log_prob = np.empty((n_samples, n_components))
@@ -467,12 +466,7 @@ def _estimate_log_gaussian_prob(X, means, precisions_chol, covariance_type, fitt
         log_prob = (np.sum(means ** 2, 1) * precisions -
                     2 * np.dot(X, means.T * precisions) +
                     np.outer(row_norms(X, squared=True), precisions))
-    #print(log_det.shape,n_features,log_prob.shape)
-    #+ weight_term.reshape((-1,1)).sum
-    #weight_term.reshape((-1,1))*
-    #if tris:
-    #    fitting_weights =
-    if False and tris is not None:
+    if tris is not None:
         M = tris.sum(1)/3.0
 
         As = tris[:,0,:]
@@ -502,8 +496,9 @@ def _estimate_log_gaussian_prob(X, means, precisions_chol, covariance_type, fitt
             log_prob[:,k] = base + term2
             
         return (-.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det)
-        #
-    return fitting_weights.reshape((-1,1))*(-.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det)
+    if areas  is not None:
+        log_prob = log_prob*(areas[:,np.newaxis]/areas.min())
+    return (-.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det)
 
 
 class GaussianMixture(BaseMixture):
@@ -664,18 +659,17 @@ class GaussianMixture(BaseMixture):
                  reg_covar=1e-6, max_iter=100, n_init=1, init_params='kmeans',
                  weights_init=None, means_init=None, precisions_init=None,
                  random_state=None, warm_start=False,
-                 verbose=0, verbose_interval=10, fitting_weights = None):
+                 verbose=0, verbose_interval=10):
         super(GaussianMixture, self).__init__(
             n_components=n_components, tol=tol, reg_covar=reg_covar,
             max_iter=max_iter, n_init=n_init, init_params=init_params,
             random_state=random_state, warm_start=warm_start,
-            verbose=verbose, verbose_interval=verbose_interval,fitting_weights=fitting_weights)
+            verbose=verbose, verbose_interval=verbose_interval)
 
         self.covariance_type = covariance_type
         self.weights_init = weights_init
         self.means_init = means_init
         self.precisions_init = precisions_init
-        self.fitting_weights = fitting_weights
         self.tris = None
         self.areas = None
 
@@ -712,12 +706,9 @@ class GaussianMixture(BaseMixture):
         resp : array-like, shape (n_samples, n_components)
         """
         n_samples, _ = X.shape
-        if self.fitting_weights is None:
-            self.fitting_weights = np.ones(X.shape[0])
-        if self.fitting_weights.shape[0] != X.shape[0]:
-            self.fitting_weights = np.ones(X.shape[0])
         weights, means, covariances = _estimate_gaussian_parameters(
-            X, resp, self.reg_covar, self.covariance_type,self.fitting_weights,self.tris)
+            X, resp, self.reg_covar, self.covariance_type,self.areas,self.tris)
+        #FIXME: DECIDE ON HOW TO INITIALIZE
         weights /= n_samples
 
         self.weights_ = (weights if self.weights_init is None
@@ -745,6 +736,8 @@ class GaussianMixture(BaseMixture):
             #self.areas = self.areas/self.areas.min()
         else:
             self.areas = None
+    def set_areas(self, areas):
+        self.areas = areas
 
     def _m_step(self, X, log_resp):
         """M step.
@@ -760,20 +753,15 @@ class GaussianMixture(BaseMixture):
         n_samples, _ = X.shape
         self.weights_, self.means_, self.covariances_ = (
             _estimate_gaussian_parameters(X, np.exp(log_resp), self.reg_covar,
-                                          self.covariance_type,self.fitting_weights,self.tris,self.areas))
-        self.weights_ /= n_samples
+                                          self.covariance_type,self.areas,self.tris))
+        self.weights_ /= self.weights_.sum()
+        #print(self.areas is None,self.weights_.sum())
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type)
 
     def _estimate_log_prob(self, X):
-        if self.fitting_weights is None:
-            self.fitting_weights = np.ones(X.shape[0])
-        if self.fitting_weights.shape[0] != X.shape[0]:
-            self.fitting_weights = np.ones(X.shape[0])
-        #if self.areas is not None:
-        #    self.fitting_weights = self.areas
         return _estimate_log_gaussian_prob(
-            X, self.means_, self.precisions_cholesky_, self.covariance_type, self.fitting_weights,self.tris)
+            X, self.means_, self.precisions_cholesky_, self.covariance_type, self.areas ,self.tris)
 
     def _estimate_log_weights(self):
         return np.log(self.weights_)

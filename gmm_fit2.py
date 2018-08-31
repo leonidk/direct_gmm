@@ -22,12 +22,12 @@ def get_centroids(mesh):
 com,a = get_centroids(mesh0)
 face_vert = mesh0.vertices[mesh0.faces.reshape(-1),:].reshape((mesh0.faces.shape[0],3,-1))
 
-with open('bunny_fit_extra_tri-25iter.log','w') as fout:
+with open('bunny_fit_extra_tri-25iter-test.log','w') as fout:
     for km in [12,25,50,100]:
         for init in ['kmeans','random']:
             for exp_n in range(2):
                 gm3 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-6); gm3.set_triangles(face_vert); gm3.fit(com); gm3.set_triangles(None)
-                gm0 = GaussianMixture(km,init_params=init,fitting_weights=a,max_iter=25,tol=1e-6); gm0.fit(com)
+                gm0 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-6); gm0.set_areas(a); gm0.fit(com); gm0.set_areas(None)
                 gm1 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-6); gm1.fit(com)
                 gm2 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-6); gm2.fit(mesh0.vertices)
                 #gm3 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm3.fit(mesh2.vertices)

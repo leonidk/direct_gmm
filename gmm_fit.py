@@ -76,10 +76,10 @@ def get_centroids(mesh):
     centroids = face_vert.sum(1)/3.0
     ABAC = face_vert[:,1:3,:] - face_vert[:,0:1,:]
     areas = np.linalg.norm(np.cross(ABAC[:,0,:],ABAC[:,1,:]),axis=1)/2.0
-    return centroids, areas
+    return centroids, areas,face_vert
 
-coma,aa = get_centroids(mesh0)
-com,a = get_centroids(mesh1)
+coma,aa,fv1 = get_centroids(mesh0)
+com,a,fv2 = get_centroids(mesh1)
 
 a = a#/a.min()
 aa = aa/aa.min()
@@ -87,19 +87,19 @@ aa = aa/aa.min()
 #res  = compute_gmm(com,100,a)
 #res2 = compute_gmm(verts,100)
 #raise
-with open('bunny_fit_extra2.log','w') as fout:
+with open('bunny_fit_week2.log','w') as fout:
     for km in [6,12,25,50,100,200,400,800]:
         for init in ['random']:
-            for exp_n in range(1):
-                #gm0 = GaussianMixture(km,init_params=init,fitting_weights=aa); gm0.fit(coma)
-                #gm1 = GaussianMixture(km,init_params=init,fitting_weights=a); gm1.fit(com)
+            for exp_n in range(10):
+                gm0 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm0.set_triangles(fv1); gm0.fit(coma); gm0.set_triangles(None)
+                gm1 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm1.set_triangles(fv2); gm1.fit(com); gm1.set_triangles(None)
                 gm2 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm2.fit(mesh3.vertices)
                 gm3 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm3.fit(mesh2.vertices)
 
                 #gm3 = GaussianMixture(100); gm3.fit(mesh4.vertices)
                 #print(coma.shape[0],com.shape[0],mesh2.vertices.shape[0],mesh3.vertices.shape[0])
-                #s0 = gm0.score(mesh4.vertices)
-                #s1 = gm1.score(mesh4.vertices)
+                s0 = gm0.score(mesh4.vertices)
+                s1 = gm1.score(mesh4.vertices)
                 s2 = gm2.score(mesh4.vertices)
                 s3 = gm3.score(mesh4.vertices)
 
@@ -107,8 +107,8 @@ with open('bunny_fit_extra2.log','w') as fout:
                 #print(gm2.n_iter_,gm3.n_iter_)
                 #print(s0,s1)
                 #print(s2,s3)
-                #fout.write("{},{},{},{},{}\n".format(km,init,'0',s0,gm0.n_iter_))
-                #fout.write("{},{},{},{},{}\n".format(km,init,'1',s1,gm1.n_iter_))
+                fout.write("{},{},{},{},{}\n".format(km,init,'0',s0,gm0.n_iter_))
+                fout.write("{},{},{},{},{}\n".format(km,init,'1',s1,gm1.n_iter_))
                 fout.write("{},{},{},{},{}\n".format(km,init,'2',s2,gm2.n_iter_))
                 fout.write("{},{},{},{},{}\n".format(km,init,'3',s3,gm3.n_iter_))
 
