@@ -114,6 +114,28 @@ for sn in range(1,101,10):
         #print(t2.shape)
         #res = -0.5 * ()
         return res.sum()/at,t2
+    def tri_ll2(A,B,C,mu,s):
+        m = ((A+B+C)/3 )
+        dev = (m - mu).reshape((-1,1))
+        a = A.reshape((-1,1))
+        b = B.reshape((-1,1))
+        c = C.reshape((-1,1))
+        m = m.reshape((-1,1))
+
+        res = 0.0
+        res -= at*0.5 * np.log(2*np.pi) *3
+        #print(res)
+        res -= at*0.5 * np.log(np.linalg.det(s))
+        prec =  np.linalg.inv(s)
+        t1 = dev.dot(dev.T)
+        t2 = (a.dot(a.T) + b.dot(b.T) + c.dot(c.T) - 3*m.dot(m.T))
+        t22 = (a.T.dot(prec).dot(a) + b.T.dot(prec).dot(b) + c.T.dot(prec).dot(c) - 3*m.T.dot(prec).dot(m))
+        #np.trace(( t1 + (1/12.0) * t2).dot(np.linalg.inv(s)))
+        #print(res,at,'\n',t1,'\n',t2/12.0)
+        res -= 0.5 *at * ((dev.T.dot(np.linalg.inv(s))).dot(dev) + (1.0/12.0)*(t22))
+        #print(t2.shape)
+        #res = -0.5 * ()
+        return res.sum()/at,t2
     l1 = at*mvg.pdf((A+B+C)/3.0,mu,covar)
     est_covar  = np.identity(3)*0
     for p in pts:
@@ -138,6 +160,8 @@ for sn in range(1,101,10):
     #print("P p(m7",lklh_mul/np.log(1/len(pts)))
     #print("M p(m)",mll_mul)
     #print("M p(m3",mll_mul*(1.0/len(pts)))
+
+    print("T p(m)2",tri_ll2(A,B,C,mu,covar)[0])
 
     print("T p(m)",ll)
     #print("R1p(m)",(ll)/(at*mll_mul*(1.0/len(pts))))
@@ -171,4 +195,4 @@ s2 = np.random.multivariate_normal(mu2,covar2,2000)
 #print("ratio\n",covar2/est_covar)
 
 #ax.scatter(s2[:,0],s2[:,1],s2[:,2])
-plt.show()
+#plt.show()

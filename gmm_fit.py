@@ -84,13 +84,13 @@ com,a = get_centroids(mesh1)
 a = a#/a.min()
 aa = aa/aa.min()
 #verts = mesh2.vertices#[np.random.choice(mesh2.vertices.shape[0], com.shape[0], replace=False), :]
-res  = compute_gmm(com,100,a)
+#res  = compute_gmm(com,100,a)
 #res2 = compute_gmm(verts,100)
-raise
+#raise
 with open('bunny_fit_extra2.log','w') as fout:
     for km in [6,12,25,50,100,200,400,800]:
         for init in ['random']:
-            for exp_n in range(20):
+            for exp_n in range(1):
                 #gm0 = GaussianMixture(km,init_params=init,fitting_weights=aa); gm0.fit(coma)
                 #gm1 = GaussianMixture(km,init_params=init,fitting_weights=a); gm1.fit(com)
                 gm2 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm2.fit(mesh3.vertices)
