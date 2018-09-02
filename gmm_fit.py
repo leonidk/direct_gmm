@@ -81,20 +81,20 @@ def get_centroids(mesh):
 coma,aa,fv1 = get_centroids(mesh0)
 com,a,fv2 = get_centroids(mesh1)
 
-a = a#/a.min()
+a = a/a.min()
 aa = aa/aa.min()
 #verts = mesh2.vertices#[np.random.choice(mesh2.vertices.shape[0], com.shape[0], replace=False), :]
 #res  = compute_gmm(com,100,a)
 #res2 = compute_gmm(verts,100)
 #raise
-with open('bunny_fit_week2.log','w') as fout:
+with open('bunny_fit_week2-4r4.log','w') as fout:
     for km in [6,12,25,50,100,200,400,800]:
         for init in ['random']:
             for exp_n in range(10):
-                gm0 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm0.set_triangles(fv1); gm0.fit(coma); gm0.set_triangles(None)
-                gm1 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm1.set_triangles(fv2); gm1.fit(com); gm1.set_triangles(None)
-                gm2 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm2.fit(mesh3.vertices)
-                gm3 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm3.fit(mesh2.vertices)
+                gm0 = GaussianMixture(km,init_params=init); gm0.set_triangles(fv1); gm0.fit(coma); gm0.set_triangles(None)
+                gm1 = GaussianMixture(km,init_params=init); gm1.set_triangles(fv2); gm1.fit(com); gm1.set_triangles(None)
+                gm2 = GaussianMixture(km,init_params=init); gm2.fit(mesh3.vertices)
+                gm3 = GaussianMixture(km,init_params=init); gm3.fit(mesh2.vertices)
 
                 #gm3 = GaussianMixture(100); gm3.fit(mesh4.vertices)
                 #print(coma.shape[0],com.shape[0],mesh2.vertices.shape[0],mesh3.vertices.shape[0])

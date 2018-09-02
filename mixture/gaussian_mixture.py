@@ -178,10 +178,12 @@ def _estimate_gaussian_covariances_full(resp, X, nk, means, reg_covar,areas=None
 
         #print(tris.shape,As.shape,Bs.shape,Cs.shape,M.shape,(M-means[0]).shape,resp[:,0].shape,term2.shape,nk.shape)
         #raise
+        print(resp[:, 0].shape,areas.shape)
         for k in range(n_components):
             diff = M - means[k]
-            term2 = np.dot(resp[:, k] *As.T,As) + np.dot(resp[:, k] *Bs.T,Bs) + np.dot(resp[:, k] *Cs.T,Cs) - 3.0*np.dot(resp[:, k] *M.T,M)
-            covariances[k] =  (np.dot(resp[:, k] *diff.T, diff) + (1.0/12.0)*(term2)) / nk[k]
+            term2 = np.dot(resp[:, k] *As.T,As) + np.dot(resp[:, k] *Bs.T,Bs)  + np.dot(resp[:, k] *Cs.T,Cs)  - 3.0*np.dot(resp[:, k] *M.T,M)
+            
+            covariances[k] =  (np.dot(resp[:, k] *diff.T, diff)  + (1.0/12.0)*(term2)) / (nk[k])
             covariances[k].flat[::n_features + 1] += reg_covar
         return covariances
 
@@ -305,16 +307,16 @@ def _estimate_gaussian_parameters(X, resp, reg_covar, covariance_type,areas=None
                     "spherical": _estimate_gaussian_covariances_spherical
                     }[covariance_type](resp, X, nk, means, reg_covar,areas,tris)
     else:
-        new_resp = resp * areas[:,np.newaxis]
+        new_resp = resp * (areas[:,np.newaxis]/areas.mean())
         new_resp = new_resp * (resp.sum()/new_resp.sum())
         nk = new_resp.sum(axis=0) + 10 * np.finfo(new_resp.dtype).eps
         print(nk.min(),nk.mean(),nk.max(),nk.dtype,resp.sum(),new_resp.sum())
 
         #print(nk.shape,resp.shape,areas[:,np.newaxis].shape)
-        #print(resp.shape,nk.shape)
-        means = np.dot(new_resp.T, X) / nk[:, np.newaxis]
+        #print(resp.shape,nk.shape,X.shape,np.dot(new_resp.T, X).shape)
+        means = np.dot(new_resp.T, X) / (nk[:, np.newaxis] )
         
-        print(areas.shape,means.shape,nk.shape,resp.shape,nk.shape)
+        #print(areas.shape,means.shape,nk.shape,resp.shape,nk.shape)
         #raise
         covariances = {"full": _estimate_gaussian_covariances_full,
                     "tied": _estimate_gaussian_covariances_tied,
@@ -466,7 +468,7 @@ def _estimate_log_gaussian_prob(X, means, precisions_chol, covariance_type, area
         log_prob = (np.sum(means ** 2, 1) * precisions -
                     2 * np.dot(X, means.T * precisions) +
                     np.outer(row_norms(X, squared=True), precisions))
-    if tris is not None:
+    if False and tris is not None:
         M = tris.sum(1)/3.0
 
         As = tris[:,0,:]
@@ -475,7 +477,7 @@ def _estimate_log_gaussian_prob(X, means, precisions_chol, covariance_type, area
         log_prob = np.empty((n_samples, n_components))
         #print(log_prob.shape)
         for k, (mu, prec_chol) in enumerate(zip(means, precisions_chol)):
-            y =  (np.dot(X, prec_chol) - np.dot(mu, prec_chol))
+            #y =  (np.dot(X, prec_chol) - np.dot(mu, prec_chol))
             Prec = prec_chol.dot(prec_chol.T)
             #log_prob[:, k] = np.sum(np.square(y), axis=1)
             #print(prec_chol.shape)
@@ -493,10 +495,10 @@ def _estimate_log_gaussian_prob(X, means, precisions_chol, covariance_type, area
             m = np.diag((M).dot(Prec).dot((M).T))
 
             term2 = 1.0/12.0 * (a + b + c - 3*m)
-            log_prob[:,k] = base + term2
+            log_prob[:,k] = (base + term2)
             
         return (-.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det)
-    if areas  is not None:
+    if areas is not None:
         log_prob = log_prob*(areas[:,np.newaxis]/areas.min())
     return (-.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det)
 
@@ -709,7 +711,7 @@ class GaussianMixture(BaseMixture):
         weights, means, covariances = _estimate_gaussian_parameters(
             X, resp, self.reg_covar, self.covariance_type,self.areas,self.tris)
         #FIXME: DECIDE ON HOW TO INITIALIZE
-        weights /= n_samples
+        weights /= weights.sum()
 
         self.weights_ = (weights if self.weights_init is None
                          else self.weights_init)
@@ -733,7 +735,7 @@ class GaussianMixture(BaseMixture):
         if tris is not None:
             ABAC = tris[:,1:3,:] - tris[:,0:1,:]
             self.areas = np.linalg.norm(np.cross(ABAC[:,0,:],ABAC[:,1,:]),axis=1)/2.0
-            #self.areas = self.areas/self.areas.min()
+            self.areas = self.areas/self.areas.sum()
         else:
             self.areas = None
     def set_areas(self, areas):
