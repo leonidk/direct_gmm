@@ -39,7 +39,9 @@ def tri_loss(gmm,faces_and_verts):
         B = face[1,:]
         C = face[2,:]
         m = center.reshape((-1,1))
-        for mu, s, pi in zip(gmm.means_,gmm.precisions_,gmm.weights_):
+        thing = np.zeros(gmm.weights_.shape)
+        i = 0
+        for mu, s, si, pi in zip(gmm.means_,gmm.covariances_,gmm.precisions_,gmm.weights_):
             res = 0.0
             dev = (m - mu[:,np.newaxis]).reshape((-1,1))
             a = A.reshape((-1,1))
@@ -52,9 +54,10 @@ def tri_loss(gmm,faces_and_verts):
             res -= 0.5 * np.log(np.linalg.det(s))
             t1 = dev.dot(dev.T)
             t2 = (a.dot(a.T) + b.dot(b.T) + c.dot(c.T) - 3*m.dot(m.T))
-            res -= 0.5 * np.trace(( t1 + (1/12.0) * t2).dot(s))
-            total += res - np.log(pi)
-    return total
+            res -= 0.5 * np.trace(( t1 + (1/12.0) * t2).dot(si))
+            thing[i] = res*areas[idx] + np.log(pi)
+        total += logsumexp(thing)
+    return total#/face.shape[0]
 def pt_loss(gmm,points):
     total = 0.0
     for p in points:
