@@ -29,7 +29,7 @@ def tri_loss(gmm,faces_and_verts):
     centroids = face_vert.sum(1)/3.0
     ABAC = face_vert[:,1:3,:] - face_vert[:,0:1,:]
     areas = np.linalg.norm(np.cross(ABAC[:,0,:],ABAC[:,1,:]),axis=1)/2.0
-    areas = areas/areas.sum()
+    #areas = areas/areas.sum()
     total = 0.0
     for idx, face in enumerate(faces_and_verts):
         #face is 3 faces with 3d locs
@@ -52,12 +52,14 @@ def tri_loss(gmm,faces_and_verts):
             res = 0.0
             res -= 0.5 * np.log(2*np.pi) *3
             res -= 0.5 * np.log(np.linalg.det(s))
-            t1 = dev.dot(dev.T)
-            t2 = (a.dot(a.T) + b.dot(b.T) + c.dot(c.T) - 3*m.dot(m.T))
-            res -= 0.5 * np.trace(( t1 + (1/12.0) * t2).dot(si))
-            thing[i] = res*areas[idx] + np.log(pi)
-        total += logsumexp(thing)
-    return total#/face.shape[0]
+            t1 = dev.T.dot(si).dot(dev)
+            #t2 = (a.dot(a.T) + b.dot(b.T) + c.dot(c.T) - 3*m.dot(m.T))
+            t2 = a.T.dot(si).dot(a) + b.T.dot(si).dot(b) + c.T.dot(si).dot(c) - 3*m.T.dot(si).dot(m)
+            res -= 0.5 * (t1+ (1.0/12.0) * t2)
+            thing[i] = (res + np.log(pi))
+            i+=1
+        total += thing.sum()#logsumexp(thing)*areas[idx]
+    return total#/areas.sum()#faces_and_verts.shape[0]
 def pt_loss(gmm,points):
     total = 0.0
     for p in points:
@@ -74,7 +76,7 @@ def pt_loss(gmm,points):
             res -= 0.5 * t1.sum()
             thing[i] = res + np.log(pi)
             i+=1
-        total += logsumexp(thing)
+        total += thing.sum()#logsumexp(thing)
     return total/points.shape[0]
 
 print(tri_loss(gm3,face_vert))
