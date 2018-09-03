@@ -38,7 +38,7 @@ C = vtx[2,:]
 M = (A+B+C)/3.0
 s = np.random.multivariate_normal(mu,covar,200)
 ax.scatter(s[:,0],s[:,1],s[:,2])
-for sn in range(1,101,10):
+for sn in range(1000,1001):
     x = np.linspace(0,1,sn)
     y = np.linspace(0,1,sn)
 
