@@ -25,7 +25,7 @@ com,a = get_centroids(mesh0)
 face_vert = mesh0.vertices[mesh0.faces.reshape(-1),:].reshape((mesh0.faces.shape[0],3,-1))
 
 #gm3 = GaussianMixture(100,init_params='kmeans'); gm3.set_triangles(face_vert); gm3.fit(com); gm3.set_triangles(None)
-gm3 = GaussianMixture(50,init_params='kmeans',tol=1e-3,max_iter=100); gm3.fit(com)
+gm3 = GaussianMixture(1,init_params='kmeans',tol=1e-4,max_iter=100); gm3.fit(mesh4.vertices)
 
 def tri_loss(gmm,faces_and_verts):
     centroids = face_vert.mean(1)
@@ -216,24 +216,34 @@ def com_loss_lb(gmm,points,areas):
     #total += thing.sum()#logsumexp(thing)
     return np.sum(thing,axis=1).mean()#/points.shape[0]
 
-print("tri\t",tri_loss(gm3,face_vert))
-print("mpt\t",pt_loss(gm3,com))
+if True:
+    tl = tri_loss_lb
+    cl = com_loss_lb
+    pl = pt_loss_lb
+    print("OMG")
+else:
+    tl = tri_loss
+    cl = com_loss
+    pl = pt_loss
+
+print("tri\t",tl(gm3,face_vert),'\t',0)
+print("mpt\t",pl(gm3,com),'\t',0)
+print('com\t',cl(gm3,com,a),'\t',0)
 #print("ptLB\t",pt_loss_lb(gm3,com))
 
-print("spt\t",gm3.score(com))
+#print("spt\t",gm3.score(com))
 
-print("sp\t",gm3._estimate_weighted_log_prob(com).sum())
+#print("sp\t",gm3._estimate_weighted_log_prob(com).sum())
 
-print('com\t',com_loss(gm3,com,a))
 
 for pn in np.logspace(1,np.log10(mesh4.vertices.shape[0]*.95),10):
     scores = []
     for itern in range(10):
         ptsn = np.random.choice(range(mesh4.vertices.shape[0]),int(pn),replace=False)
-        scores.append(pt_loss(gm3,mesh4.vertices[ptsn,:]))
+        scores.append(pl(gm3,mesh4.vertices[ptsn,:]))
         #scores.append(gm3._estimate_weighted_log_prob(mesh4.vertices[ptsn,:]).sum()/pn)
     scores = np.array(scores)
     print(ptsn.shape[0],'\t',scores.mean(),'\t',scores.std())
 #print(" ",gm3.score(mesh4.vertices))
 
-print(" ",gm3._estimate_weighted_log_prob(mesh4.vertices).sum()/mesh4.vertices.shape[0])
+#print(" ",gm3._estimate_weighted_log_prob(mesh4.vertices).sum()/mesh4.vertices.shape[0])
