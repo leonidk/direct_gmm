@@ -111,6 +111,7 @@ for sn in range(1000,1001):
         t2 = (a.dot(a.T) + b.dot(b.T) + c.dot(c.T) - 3*m.dot(m.T))
         #print(res,at,'\n',t1,'\n',t2/12.0)
         res -= 0.5 *at * np.trace(( t1 + (1/12.0) * t2).dot(np.linalg.inv(s)))
+        print(t1.mean(),t2.mean())
         #print(t2.shape)
         #res = -0.5 * ()
         return res.sum()/at,t2
@@ -152,6 +153,7 @@ for sn in range(1000,1001):
     #print("S p(m)",np.log(lklh_add))
     #print("P p(m)",lklh_mul)
     #print("P p(m2",lklh_mul+(1/len(pts)))
+    print("COM 4E", mvg.logpdf(M,mu,covar))
     print("P p(m3",lklh_mul*(1.0/len(pts)))
     #print("constat",np.log(len(pts)))
     #print("P p(m4",lklh_mul/(1/len(pts)))
