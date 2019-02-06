@@ -12,7 +12,7 @@ import scipy.optimize as opt
 import transforms3d
 
 SAMPLE_NUM = 100
-method = 'Powell'
+method = None
 K = 20
 SAMPLE_PTS = 453
 mesh0 = pymesh.load_mesh("bunny/bun_zipper_res4.ply")
@@ -52,13 +52,14 @@ for n in range(SAMPLE_NUM):
     true_q = transforms3d.quaternions.mat2quat(M)
     indices = np.random.randint(0,full_points.shape[0],SAMPLE_PTS)
     samples= full_points[indices]
-    source = samples @ M  + t
+    centered_points = samples - samples.mean(0)
+    source = centered_points @ M + samples.mean(0) + t
     def loss_verts(x):
         qs = x[:4]
         ts = x[4:]
         qs = qs/np.linalg.norm(qs)
         Ms = transforms3d.quaternions.quat2mat(qs)
-        tpts =  (source - ts) @ Ms.T
+        tpts =  (centered_points) @ Ms.T + samples.mean(0) + ts
         return -gm_std.score(tpts)
     res = opt.minimize(loss_verts,np.array([1,0,0,0,0,0,0]),method=method)
     rq = res.x[:4]
@@ -85,27 +86,55 @@ for n in range(SAMPLE_NUM):
     source2 = np.copy(source)
     prev_err = 100000000
     indices2 = np.random.randint(0,full_points.shape[0],SAMPLE_PTS)
-    samples_for_icp = full_points[indices2]
+    samples_for_icp = np.copy(samples) #full_points[indices2]
+    flag = True
     while True:
-        it = samples_for_icp.mean(0) - source2.mean(0)
-        dist = cdist(source2+it,samples_for_icp)
+        dist = cdist(source2,samples_for_icp)
         sample_idx = np.argmin(dist,1)
         matched_pts = samples_for_icp[sample_idx]
-        H = (source2+it).T @  matched_pts
+        it =  source2.mean(0) - matched_pts.mean(0)
+        if flag:
+            idx2 = np.argmin(dist,0)
+            matched2 = source2[idx2]
+            it += matched2.mean(0) - samples_for_icp.mean(0)
+
+        H = (source2-source2.mean(0)).T @ (matched_pts-matched_pts.mean(0))
+        if flag:
+            H2 = (matched2-matched2.mean(0)).T @ (samples_for_icp-samples_for_icp.mean(0))
+            H2 *= source2.shape[0]/samples_for_icp.shape[0]
+            H = H + H2
         u,s,vt = np.linalg.svd(H)
         rotmat = vt.T @ np.diag([1,1,np.linalg.det(vt.T @ u.T)]) @ u.T
-        #print(np.diag(cdist(source2,matched_pts)).mean())
-        #print(np.diag(cdist(source2+it,matched_pts)).mean())
-        source2 =  (source2 +it) @ rotmat.T
+        
+        #print(rotmat,'\n',M)
+        #print(it,'\n',t)
+
+        source2 = (source2 - source2.mean(0)) @ rotmat.T + source2.mean(0) - it 
         err = np.diag(cdist(source2,matched_pts)).mean()
-        #print(np.diag(cdist(source2,matched_pts)).mean())
+        #print(err)
+        #print(np.diag(cdist(source2,matched_pts)).mean(),len(matched_pts))
         if np.linalg.norm(err-prev_err) < 1e-6:
             break
         prev_err = err
         icp_t += it
-        R = R @ rotmat
-    icp_q = transforms3d.quaternions.mat2quat(R)
-    icp_t = -icp_t
+        R = R @ rotmat.T
+        #print(it)
+        #print(rotmat)
+
+        icp_q = transforms3d.quaternions.mat2quat(R)
+        icp_t = icp_t
+
+    if False:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(source[:,0],source[:,1],source[:,2],label='orig')    
+        ax.scatter(samples[:,0],samples[:,1],samples[:,2],label='trans')
+        result = (source + icp_t) @ R.T
+        ax.scatter(source2[:,0],source2[:,1],source2[:,2],label='registered')
+        plt.title(str(icp_q.dot(true_q)) + ' ' + str(np.linalg.norm(icp_t-t)))
+        plt.legend()
+        plt.show()
+
     data_log_icp.append( [icp_q.dot(true_q),np.linalg.norm(icp_t-t)] )
 
 np.savetxt('verts2.csv',np.array(data_log_verts),delimiter=',')
