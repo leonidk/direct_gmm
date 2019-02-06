@@ -11,8 +11,10 @@ from scipy.special import logsumexp
 import scipy.optimize as opt
 import transforms3d
 
-SAMPLE_NUM = 20
-
+SAMPLE_NUM = 100
+method = 'Powell'
+K = 20
+SAMPLE_PTS = 453
 mesh0 = pymesh.load_mesh("bunny/bun_zipper_res4.ply")
 mesh_pts = pymesh.load_mesh("bunny/bun_zipper_res4_sds.ply")
 
@@ -29,10 +31,9 @@ com,a = get_centroids(mesh0)
 face_vert = mesh0.vertices[mesh0.faces.reshape(-1),:].reshape((mesh0.faces.shape[0],3,-1))
 
 #gm3 = GaussianMixture(100,init_params='kmeans'); gm3.set_triangles(face_vert); gm3.fit(com); gm3.set_triangles(None)
-K = 50
 gm_std = GaussianMixture(K,init_params='random',tol=1e-4,max_iter=100); gm_std.fit(mesh0.vertices)
 gm_mesh = GaussianMixture(K,init_params='random',tol=1e-4,max_iter=100); gm_mesh.set_triangles(face_vert); gm_mesh.fit(com); gm_mesh.set_triangles(None)
-full_points = mesh0.vertices
+full_points = mesh_pts.vertices
 
 data_log_mesh = []
 data_log_verts = []
@@ -49,7 +50,7 @@ for n in range(SAMPLE_NUM):
         M = transforms3d.euler.euler2mat(angles[0],angles[1],angles[2])
 
     true_q = transforms3d.quaternions.mat2quat(M)
-    indices = np.random.randint(0,full_points.shape[0],256)
+    indices = np.random.randint(0,full_points.shape[0],SAMPLE_PTS)
     samples= full_points[indices]
     source = samples @ M  + t
     def loss_verts(x):
@@ -59,10 +60,13 @@ for n in range(SAMPLE_NUM):
         Ms = transforms3d.quaternions.quat2mat(qs)
         tpts =  (source - ts) @ Ms.T
         return -gm_std.score(tpts)
-    res = opt.minimize(loss_verts,np.array([1,0,0,0,0,0,0]),method='CG')
+    res = opt.minimize(loss_verts,np.array([1,0,0,0,0,0,0]),method=method)
     rq = res.x[:4]
+    rq = rq/np.linalg.norm(rq)
     rt = res.x[4:]
-    data_log_verts.append( [1-rq.dot(true_q)**2,np.linalg.norm(rt-t)] )
+    #print(method)
+    #print(np.arccos(rq.dot(true_q)),np.linalg.norm(rt-t))
+    data_log_verts.append( [rq.dot(true_q),np.linalg.norm(rt-t)] )
     def loss_mesh(x):
         qs = x[:4]
         ts = x[4:]
@@ -70,16 +74,17 @@ for n in range(SAMPLE_NUM):
         Ms = transforms3d.quaternions.quat2mat(qs)
         tpts =  (source - ts) @ Ms.T
         return -gm_mesh.score(tpts)
-    res = opt.minimize(loss_mesh,np.array([1,0,0,0,0,0,0]),method='CG')
+    res = opt.minimize(loss_mesh,np.array([1,0,0,0,0,0,0]),method=method)
     rq = res.x[:4]
+    rq = rq/np.linalg.norm(rq)
     rt = res.x[4:]
-    data_log_mesh.append( [1-rq.dot(true_q)**2,np.linalg.norm(rt-t)] )
+    data_log_mesh.append( [rq.dot(true_q),np.linalg.norm(rt-t)] )
 
     icp_t = np.zeros(3)
     R = np.identity(3)
     source2 = np.copy(source)
     prev_err = 100000000
-    indices2 = np.random.randint(0,full_points.shape[0],K)
+    indices2 = np.random.randint(0,full_points.shape[0],SAMPLE_PTS)
     samples_for_icp = full_points[indices2]
     while True:
         it = samples_for_icp.mean(0) - source2.mean(0)
@@ -94,14 +99,14 @@ for n in range(SAMPLE_NUM):
         source2 =  (source2 +it) @ rotmat.T
         err = np.diag(cdist(source2,matched_pts)).mean()
         #print(np.diag(cdist(source2,matched_pts)).mean())
-        if np.linalg.norm(err-prev_err) < 1e-3:
+        if np.linalg.norm(err-prev_err) < 1e-6:
             break
         prev_err = err
         icp_t += it
         R = R @ rotmat
     icp_q = transforms3d.quaternions.mat2quat(R)
     icp_t = -icp_t
-    data_log_icp.append( [1-icp_q.dot(true_q)**2,np.linalg.norm(icp_t-t)] )
+    data_log_icp.append( [icp_q.dot(true_q),np.linalg.norm(icp_t-t)] )
 
 np.savetxt('verts2.csv',np.array(data_log_verts),delimiter=',')
 np.savetxt('mesh2.csv',np.array(data_log_mesh),delimiter=',')
