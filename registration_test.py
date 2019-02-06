@@ -59,7 +59,7 @@ for n in range(SAMPLE_NUM):
         Ms = transforms3d.quaternions.quat2mat(qs)
         tpts =  (source - ts) @ Ms.T
         return -gm_std.score(tpts)
-    res = opt.minimize(loss_verts,np.array([1,0,0,0,0,0,0]),method=None)
+    res = opt.minimize(loss_verts,np.array([1,0,0,0,0,0,0]),method='CG')
     rq = res.x[:4]
     rt = res.x[4:]
     data_log_verts.append( [1-rq.dot(true_q)**2,np.linalg.norm(rt-t)] )
@@ -70,7 +70,7 @@ for n in range(SAMPLE_NUM):
         Ms = transforms3d.quaternions.quat2mat(qs)
         tpts =  (source - ts) @ Ms.T
         return -gm_mesh.score(tpts)
-    res = opt.minimize(loss_mesh,np.array([1,0,0,0,0,0,0]),method=None)
+    res = opt.minimize(loss_mesh,np.array([1,0,0,0,0,0,0]),method='CG')
     rq = res.x[:4]
     rt = res.x[4:]
     data_log_mesh.append( [1-rq.dot(true_q)**2,np.linalg.norm(rt-t)] )
