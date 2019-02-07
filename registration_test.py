@@ -13,9 +13,11 @@ import transforms3d
 from pycpd import rigid_registration
 
 SAMPLE_NUM = 100
-method = None
+method = None#'CG'
 K = 50
-SAMPLE_PTS = K*3#453
+SAMPLE_PTS = 3*K#453
+ICP_ITERS = 150 #150
+CPD_ITERS = 500 #500
 mesh0 = pymesh.load_mesh("bunny/bun_zipper_res4.ply")
 mesh_pts = pymesh.load_mesh("bunny/bun_zipper_res4_sds.ply")
 
@@ -41,9 +43,10 @@ data_log_verts = []
 data_log_icp = []
 data_log_cpd = []
 import time
+opt_times = []
 prev_time = time.time()
 for n in range(SAMPLE_NUM):
-    print(n,time.time()-prev_time)
+    print(n,round(time.time()-prev_time,1),'seconds')
     prev_time = time.time()
     if False: # random transformations
         q = np.random.randn(4)
@@ -85,7 +88,10 @@ for n in range(SAMPLE_NUM):
         Ms = transforms3d.quaternions.quat2mat(qs)
         tpts =  (source_centered) @ Ms.T + sourcemean - ts
         return -gm_mesh.score(tpts)
+    start_opt = time.time()
     res = opt.minimize(loss_mesh,np.array([1,0,0,0,0,0,0]),method=method)
+    end_opt = time.time()
+    opt_times.append(end_opt-start_opt)
     rq = res.x[:4]
     rq = rq/np.linalg.norm(rq)
     rt = res.x[4:]
@@ -98,7 +104,7 @@ for n in range(SAMPLE_NUM):
     indices2 = np.random.randint(0,full_points.shape[0],SAMPLE_PTS)
     samples_for_icp = mesh_pts.vertices[indices2]
     flag = True
-    for icp_iter in range(50):
+    for icp_iter in range(ICP_ITERS):
         dist = cdist(source2,samples_for_icp)
         sample_idx = np.argmin(dist,1)
         matched_pts = samples_for_icp[sample_idx]
@@ -109,7 +115,7 @@ for n in range(SAMPLE_NUM):
         if flag:
             idx2 = np.argmin(dist,0)
             matched2 = source2[idx2]
-            it += matched2.mean(0) - samples_for_icp.mean(0)
+            it = (0.5*it) + 0.5*(matched2.mean(0) - samples_for_icp.mean(0))
 
         H = (source2centered).T @ (matched_pts-matchedptsmean)
         if flag:
@@ -129,7 +135,7 @@ for n in range(SAMPLE_NUM):
             break
         prev_err = err
         icp_t += it
-        R = R @ rotmat.T
+        R = R @ rotmat
         #print(it)
         #print(rotmat)
 
@@ -138,7 +144,7 @@ for n in range(SAMPLE_NUM):
     data_log_icp.append( [icp_q.dot(true_q),np.linalg.norm(icp_t-t)] )
 
     
-    reg = rigid_registration(X=source,Y=samples_for_icp)
+    reg = rigid_registration(X=source,Y=samples_for_icp,max_iterations=CPD_ITERS,tolerance=1e-6)
     TY, (s_reg, R_reg, t_reg) = reg.register()
     cpd_q = transforms3d.quaternions.mat2quat(R_reg)
     data_log_cpd.append( [cpd_q.dot(true_q),np.linalg.norm(t_reg-t)] )
@@ -153,7 +159,7 @@ for n in range(SAMPLE_NUM):
         plt.title(str(icp_q.dot(true_q)) + ' ' + str(np.linalg.norm(icp_t-t)))
         plt.legend()
         plt.show()
-
+print(np.array(opt_times).mean()*1000)
 np.savetxt('verts2.csv',np.array(data_log_verts),delimiter=',')
 np.savetxt('mesh2.csv',np.array(data_log_mesh),delimiter=',')
 np.savetxt('icp2.csv',np.array(data_log_icp),delimiter=',')
