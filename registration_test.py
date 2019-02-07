@@ -10,11 +10,12 @@ import pickle
 from scipy.special import logsumexp
 import scipy.optimize as opt
 import transforms3d
+from pycpd import rigid_registration
 
 SAMPLE_NUM = 100
 method = None
-K = 20
-SAMPLE_PTS = 453
+K = 50
+SAMPLE_PTS = K*3#453
 mesh0 = pymesh.load_mesh("bunny/bun_zipper_res4.ply")
 mesh_pts = pymesh.load_mesh("bunny/bun_zipper_res4_sds.ply")
 
@@ -38,7 +39,12 @@ full_points = mesh_pts.vertices
 data_log_mesh = []
 data_log_verts = []
 data_log_icp = []
+data_log_cpd = []
+import time
+prev_time = time.time()
 for n in range(SAMPLE_NUM):
+    print(n,time.time()-prev_time)
+    prev_time = time.time()
     if False: # random transformations
         q = np.random.randn(4)
         q = q/np.linalg.norm(q)
@@ -47,19 +53,23 @@ for n in range(SAMPLE_NUM):
     else:
         t = np.random.rand(3)*0.1 - 0.05
         angles = np.random.rand(3)*30 - 15
+        angles *= np.pi/180.0
         M = transforms3d.euler.euler2mat(angles[0],angles[1],angles[2])
 
     true_q = transforms3d.quaternions.mat2quat(M)
     indices = np.random.randint(0,full_points.shape[0],SAMPLE_PTS)
     samples= full_points[indices]
-    centered_points = samples - samples.mean(0)
-    source = centered_points @ M + samples.mean(0) + t
+    samples_mean = samples.mean(0)
+    centered_points = samples - samples_mean
+    source = centered_points @ M + samples_mean+ t
+    sourcemean = source.mean(0)
+    source_centered = source - sourcemean
     def loss_verts(x):
         qs = x[:4]
         ts = x[4:]
         qs = qs/np.linalg.norm(qs)
         Ms = transforms3d.quaternions.quat2mat(qs)
-        tpts =  (centered_points) @ Ms.T + samples.mean(0) + ts
+        tpts =  (source_centered) @ Ms.T + sourcemean - ts
         return -gm_std.score(tpts)
     res = opt.minimize(loss_verts,np.array([1,0,0,0,0,0,0]),method=method)
     rq = res.x[:4]
@@ -73,7 +83,7 @@ for n in range(SAMPLE_NUM):
         ts = x[4:]
         qs = qs/np.linalg.norm(qs)
         Ms = transforms3d.quaternions.quat2mat(qs)
-        tpts =  (source - ts) @ Ms.T
+        tpts =  (source_centered) @ Ms.T + sourcemean - ts
         return -gm_mesh.score(tpts)
     res = opt.minimize(loss_mesh,np.array([1,0,0,0,0,0,0]),method=method)
     rq = res.x[:4]
@@ -86,19 +96,22 @@ for n in range(SAMPLE_NUM):
     source2 = np.copy(source)
     prev_err = 100000000
     indices2 = np.random.randint(0,full_points.shape[0],SAMPLE_PTS)
-    samples_for_icp = np.copy(samples) #full_points[indices2]
+    samples_for_icp = mesh_pts.vertices[indices2]
     flag = True
-    while True:
+    for icp_iter in range(50):
         dist = cdist(source2,samples_for_icp)
         sample_idx = np.argmin(dist,1)
         matched_pts = samples_for_icp[sample_idx]
-        it =  source2.mean(0) - matched_pts.mean(0)
+        source2mean = source2.mean(0)
+        matchedptsmean = matched_pts.mean(0)
+        source2centered = source2-source2mean
+        it =  source2mean - matchedptsmean
         if flag:
             idx2 = np.argmin(dist,0)
             matched2 = source2[idx2]
             it += matched2.mean(0) - samples_for_icp.mean(0)
 
-        H = (source2-source2.mean(0)).T @ (matched_pts-matched_pts.mean(0))
+        H = (source2centered).T @ (matched_pts-matchedptsmean)
         if flag:
             H2 = (matched2-matched2.mean(0)).T @ (samples_for_icp-samples_for_icp.mean(0))
             H2 *= source2.shape[0]/samples_for_icp.shape[0]
@@ -108,9 +121,8 @@ for n in range(SAMPLE_NUM):
         
         #print(rotmat,'\n',M)
         #print(it,'\n',t)
-
-        source2 = (source2 - source2.mean(0)) @ rotmat.T + source2.mean(0) - it 
-        err = np.diag(cdist(source2,matched_pts)).mean()
+        source2 = (source2centered) @ rotmat.T + source2mean - it 
+        err = np.linalg.norm(source2-matched_pts,axis=1)
         #print(err)
         #print(np.diag(cdist(source2,matched_pts)).mean(),len(matched_pts))
         if np.linalg.norm(err-prev_err) < 1e-6:
@@ -123,6 +135,13 @@ for n in range(SAMPLE_NUM):
 
         icp_q = transforms3d.quaternions.mat2quat(R)
         icp_t = icp_t
+    data_log_icp.append( [icp_q.dot(true_q),np.linalg.norm(icp_t-t)] )
+
+    
+    reg = rigid_registration(X=source,Y=samples_for_icp)
+    TY, (s_reg, R_reg, t_reg) = reg.register()
+    cpd_q = transforms3d.quaternions.mat2quat(R_reg)
+    data_log_cpd.append( [cpd_q.dot(true_q),np.linalg.norm(t_reg-t)] )
 
     if False:
         fig = plt.figure()
@@ -135,8 +154,7 @@ for n in range(SAMPLE_NUM):
         plt.legend()
         plt.show()
 
-    data_log_icp.append( [icp_q.dot(true_q),np.linalg.norm(icp_t-t)] )
-
 np.savetxt('verts2.csv',np.array(data_log_verts),delimiter=',')
 np.savetxt('mesh2.csv',np.array(data_log_mesh),delimiter=',')
 np.savetxt('icp2.csv',np.array(data_log_icp),delimiter=',')
+np.savetxt('cpd2.csv',np.array(data_log_cpd),delimiter=',')
