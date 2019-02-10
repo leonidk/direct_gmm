@@ -178,7 +178,7 @@ def _estimate_gaussian_covariances_full(resp, X, nk, means, reg_covar,areas=None
 
         #print(tris.shape,As.shape,Bs.shape,Cs.shape,M.shape,(M-means[0]).shape,resp[:,0].shape,term2.shape,nk.shape)
         #raise
-        print(resp[:, 0].shape,areas.shape)
+        #print(resp[:, 0].shape,areas.shape)
         for k in range(n_components):
             diff = M - means[k]
             term2 = np.dot(resp[:, k] *As.T,As) + np.dot(resp[:, k] *Bs.T,Bs)  + np.dot(resp[:, k] *Cs.T,Cs)  - 3.0*np.dot(resp[:, k] *M.T,M)
@@ -310,7 +310,7 @@ def _estimate_gaussian_parameters(X, resp, reg_covar, covariance_type,areas=None
         new_resp = resp * (areas[:,np.newaxis]/areas.mean())
         new_resp = new_resp * (resp.sum()/new_resp.sum())
         nk = new_resp.sum(axis=0) + 10 * np.finfo(new_resp.dtype).eps
-        print(nk.min(),nk.mean(),nk.max(),nk.dtype,resp.sum(),new_resp.sum())
+        #print(nk.min(),nk.mean(),nk.max(),nk.dtype,resp.sum(),new_resp.sum())
 
         #print(nk.shape,resp.shape,areas[:,np.newaxis].shape)
         #print(resp.shape,nk.shape,X.shape,np.dot(new_resp.T, X).shape)
