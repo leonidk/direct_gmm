@@ -14,9 +14,9 @@ from pycpd import rigid_registration
 import time
 
 SAMPLE_NUM = 100
-method = 'CG'#None#CG'
+method = None#'CG'#None#CG'
 K = 50
-SAMPLE_PTS = 1000
+SAMPLE_PTS = 510 # number of vertecies!
 ICP_ITERS = 50000 #150
 ICP_THRESH = 1e-9
 CPD_THRESH = 1e-9
@@ -25,8 +25,8 @@ CPD_ITERS = 50 #500
 #mesh_pts = pymesh.load_mesh("bunny/bun_zipper_res4_sds.ply")
 #mesh0 = pymesh.load_mesh("bunny/bun_zipper.ply") 
 #mesh_pts = pymesh.load_mesh("bunny/bun_zipper_50k.ply")
-mesh0 = pymesh.load_mesh("bunny/bun_zipper_1000_1.ply") 
-mesh_pts = pymesh.load_mesh("bunny/bun_zipper_50k.ply")
+#mesh0 = pymesh.load_mesh("bunny/bun_zipper_1000_1.ply") 
+#mesh_pts = pymesh.load_mesh("bunny/bun_zipper_50k.ply")
 
 def get_centroids(mesh):
     # obtain a vertex for each face index
@@ -56,9 +56,13 @@ t1 = time.time()
 #indices3 = np.random.randint(0,mesh0.vertices.shape[0],SAMPLE_PTS)
 gm_mesh = GaussianMixture(K,init_params='random',tol=1e-5,max_iter=100); gm_mesh.set_triangles(face_vert); gm_mesh.fit(com); gm_mesh.set_triangles(None)
 print((time.time()-t1)*1000)
-
+t1 = time.time()
+#indices3 = np.random.randint(0,mesh0.vertices.shape[0],SAMPLE_PTS)
+gm_mesh_kmeans = GaussianMixture(K,init_params='kmeans',tol=1e-5,max_iter=100); gm_mesh_kmeans.set_triangles(face_vert); gm_mesh_kmeans.fit(com); gm_mesh_kmeans.set_triangles(None)
+print((time.time()-t1)*1000)
 
 data_log_mesh = []
+data_log_meshk = []
 data_log_verts = []
 data_log_vertsk = []
 data_log_icp = []
@@ -154,7 +158,20 @@ for n in range(SAMPLE_NUM):
     rq = rq/np.linalg.norm(rq)
     rt = res.x[4:]
     data_log_vertsk.append( [rq.dot(true_q),np.linalg.norm(rt-t)] )
-
+    def loss_mesh_k2(x):
+        qs = x[:4]
+        ts = x[4:]
+        qs = qs/np.linalg.norm(qs)
+        Ms = transforms3d.quaternions.quat2mat(qs)
+        tpts =  (source_centered) @ Ms.T + sourcemean - ts
+        return -gm_mesh_kmeans.score(tpts)
+    start_opt = time.time()
+    res = opt.minimize(loss_mesh_k2,np.array([1,0,0,0,0,0,0]),method=method)
+    end_opt = time.time()
+    rq = res.x[:4]
+    rq = rq/np.linalg.norm(rq)
+    rt = res.x[4:]
+    data_log_meshk.append( [rq.dot(true_q),np.linalg.norm(rt-t)] )
 
     icp_t = np.zeros(3)
     R = np.identity(3)
@@ -235,3 +252,4 @@ if len(data_log_verts) > 0 :
     np.savetxt('icp2.csv',np.array(data_log_icp),delimiter=',')
     np.savetxt('cpd2.csv',np.array(data_log_cpd),delimiter=',')
     np.savetxt('oracle2.csv',np.array(data_log_oracle),delimiter=',')
+    np.savetxt('meshk2.csv',np.array(data_log_meshk),delimiter=',')
