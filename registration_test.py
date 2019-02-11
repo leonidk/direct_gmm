@@ -14,16 +14,18 @@ from pycpd import rigid_registration
 import time
 
 SAMPLE_NUM = 100
-method = None#'CG'
+method = 'CG'#None#CG'
 K = 50
 SAMPLE_PTS = 1000
 ICP_ITERS = 50000 #150
 ICP_THRESH = 1e-9
 CPD_THRESH = 1e-9
-CPD_ITERS = 100 #500
+CPD_ITERS = 50 #500
 #mesh0 = pymesh.load_mesh("bunny/bun_zipper_res4.ply")
 #mesh_pts = pymesh.load_mesh("bunny/bun_zipper_res4_sds.ply")
-mesh0 = pymesh.load_mesh("bunny/bun_zipper_1000_1.ply")
+#mesh0 = pymesh.load_mesh("bunny/bun_zipper.ply") 
+#mesh_pts = pymesh.load_mesh("bunny/bun_zipper_50k.ply")
+mesh0 = pymesh.load_mesh("bunny/bun_zipper_1000_1.ply") 
 mesh_pts = pymesh.load_mesh("bunny/bun_zipper_50k.ply")
 
 def get_centroids(mesh):
@@ -31,6 +33,7 @@ def get_centroids(mesh):
     face_vert = mesh.vertices[mesh.faces.reshape(-1),:].reshape((mesh.faces.shape[0],3,-1))
     # face_vert is size (faces,3(one for each vert), 3(one for each dimension))
     centroids = face_vert.sum(1)/3.0
+    #face_vert = ((face_vert.shape[0]/SAMPLE_PTS)*(face_vert.reshape((-1,9))-np.repeat(centroids,3,axis=1)) + np.repeat(centroids,3,axis=1)).reshape((-1,3,3))
     ABAC = face_vert[:,1:3,:] - face_vert[:,0:1,:]
     areas = np.linalg.norm(np.cross(ABAC[:,0,:],ABAC[:,1,:]),axis=1)/2.0
     return centroids, areas
@@ -39,7 +42,7 @@ com,a = get_centroids(mesh0)
 print(com.shape)
 face_vert = mesh0.vertices[mesh0.faces.reshape(-1),:].reshape((mesh0.faces.shape[0],3,-1))
 
-indices2 = np.random.randint(0,mesh_pts.vertices.shape[0],SAMPLE_PTS)
+indices2 = np.random.randint(0,mesh_pts.vertices.shape[0],3*SAMPLE_PTS)
 samples_for_icp = np.copy(mesh_pts.vertices[indices2])
 #gm3 = GaussianMixture(100,init_params='kmeans'); gm3.set_triangles(face_vert); gm3.fit(com); gm3.set_triangles(None)
 #usually tol=1e-4,max_iter=100
@@ -50,6 +53,7 @@ t1 = time.time()
 gm_std = GaussianMixture(K,init_params='random',tol=1e-5,max_iter=100); gm_std.fit(samples_for_icp)
 print((time.time()-t1)*1000)
 t1 = time.time()
+#indices3 = np.random.randint(0,mesh0.vertices.shape[0],SAMPLE_PTS)
 gm_mesh = GaussianMixture(K,init_params='random',tol=1e-5,max_iter=100); gm_mesh.set_triangles(face_vert); gm_mesh.fit(com); gm_mesh.set_triangles(None)
 print((time.time()-t1)*1000)
 
