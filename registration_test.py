@@ -16,13 +16,15 @@ import time
 SAMPLE_NUM = 100
 method = None#'CG'
 K = 50
-SAMPLE_PTS = 948
+SAMPLE_PTS = 1000
 ICP_ITERS = 50000 #150
 ICP_THRESH = 1e-9
 CPD_THRESH = 1e-9
 CPD_ITERS = 100 #500
-mesh0 = pymesh.load_mesh("bunny/bun_zipper_res4.ply")
-mesh_pts = pymesh.load_mesh("bunny/bun_zipper_res4_sds.ply")
+#mesh0 = pymesh.load_mesh("bunny/bun_zipper_res4.ply")
+#mesh_pts = pymesh.load_mesh("bunny/bun_zipper_res4_sds.ply")
+mesh0 = pymesh.load_mesh("bunny/bun_zipper_1000_1.ply")
+mesh_pts = pymesh.load_mesh("bunny/bun_zipper_50k.ply")
 
 def get_centroids(mesh):
     # obtain a vertex for each face index
@@ -37,13 +39,15 @@ com,a = get_centroids(mesh0)
 print(com.shape)
 face_vert = mesh0.vertices[mesh0.faces.reshape(-1),:].reshape((mesh0.faces.shape[0],3,-1))
 
+indices2 = np.random.randint(0,mesh_pts.vertices.shape[0],SAMPLE_PTS)
+samples_for_icp = np.copy(mesh_pts.vertices[indices2])
 #gm3 = GaussianMixture(100,init_params='kmeans'); gm3.set_triangles(face_vert); gm3.fit(com); gm3.set_triangles(None)
 #usually tol=1e-4,max_iter=100
 t1 = time.time()
-gm_std_km = GaussianMixture(K,init_params='kmeans',tol=1e-5,max_iter=100); gm_std_km.fit(com)
+gm_std_km = GaussianMixture(K,init_params='kmeans',tol=1e-5,max_iter=100); gm_std_km.fit(samples_for_icp)
 print((time.time()-t1)*1000)
 t1 = time.time()
-gm_std = GaussianMixture(K,init_params='random',tol=1e-5,max_iter=100); gm_std.fit(com)
+gm_std = GaussianMixture(K,init_params='random',tol=1e-5,max_iter=100); gm_std.fit(samples_for_icp)
 print((time.time()-t1)*1000)
 t1 = time.time()
 gm_mesh = GaussianMixture(K,init_params='random',tol=1e-5,max_iter=100); gm_mesh.set_triangles(face_vert); gm_mesh.fit(com); gm_mesh.set_triangles(None)
