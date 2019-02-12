@@ -13,16 +13,16 @@ import transforms3d
 from pycpd import rigid_registration
 import time
 
-SAMPLE_NUM = 100
-method = None#'CG'#None#CG'
-K = 50
-SAMPLE_PTS = 510 # number of vertecies!
+SAMPLE_NUM = 250
+method = None#'CG'#None#'CG'#None#CG'
+K = 100
+SAMPLE_PTS = 453 # number of vertecies!
 ICP_ITERS = 50000 #150
 ICP_THRESH = 1e-9
 CPD_THRESH = 1e-9
-CPD_ITERS = 50 #500
-#mesh0 = pymesh.load_mesh("bunny/bun_zipper_res4.ply")
-#mesh_pts = pymesh.load_mesh("bunny/bun_zipper_res4_sds.ply")
+CPD_ITERS = 300 #500
+mesh0 = pymesh.load_mesh("bunny/bun_zipper_res4.ply")
+mesh_pts = pymesh.load_mesh("bunny/bun_zipper_res4_sds.ply")
 #mesh0 = pymesh.load_mesh("bunny/bun_zipper.ply") 
 #mesh_pts = pymesh.load_mesh("bunny/bun_zipper_50k.ply")
 #mesh0 = pymesh.load_mesh("bunny/bun_zipper_1000_1.ply") 
@@ -42,8 +42,8 @@ com,a = get_centroids(mesh0)
 print(com.shape)
 face_vert = mesh0.vertices[mesh0.faces.reshape(-1),:].reshape((mesh0.faces.shape[0],3,-1))
 
-indices2 = np.random.randint(0,mesh_pts.vertices.shape[0],3*SAMPLE_PTS)
-samples_for_icp = np.copy(mesh_pts.vertices[indices2])
+indices2 = np.random.randint(0,mesh_pts.vertices.shape[0],SAMPLE_PTS)
+samples_for_icp = mesh0.vertices#np.copy(mesh_pts.vertices[indices2])
 #gm3 = GaussianMixture(100,init_params='kmeans'); gm3.set_triangles(face_vert); gm3.fit(com); gm3.set_triangles(None)
 #usually tol=1e-4,max_iter=100
 t1 = time.time()
@@ -158,21 +158,43 @@ for n in range(SAMPLE_NUM):
     rq = rq/np.linalg.norm(rq)
     rt = res.x[4:]
     data_log_vertsk.append( [rq.dot(true_q),np.linalg.norm(rt-t)] )
-    def loss_mesh_k2(x):
-        qs = x[:4]
-        ts = x[4:]
-        qs = qs/np.linalg.norm(qs)
-        Ms = transforms3d.quaternions.quat2mat(qs)
-        tpts =  (source_centered) @ Ms.T + sourcemean - ts
-        return -gm_mesh_kmeans.score(tpts)
-    start_opt = time.time()
-    res = opt.minimize(loss_mesh_k2,np.array([1,0,0,0,0,0,0]),method=method)
-    end_opt = time.time()
-    rq = res.x[:4]
-    rq = rq/np.linalg.norm(rq)
-    rt = res.x[4:]
-    data_log_meshk.append( [rq.dot(true_q),np.linalg.norm(rt-t)] )
+    if True:
+        def loss_mesh_k2(x):
+            qs = x[:4]
+            ts = x[4:]
+            qs = qs/np.linalg.norm(qs)
+            Ms = transforms3d.quaternions.quat2mat(qs)
+            tpts =  (source_centered) @ Ms.T + sourcemean - ts
+            return -gm_mesh_kmeans.score(tpts)
+        start_opt = time.time()
+        res = opt.minimize(loss_mesh_k2,np.array([1,0,0,0,0,0,0]),method=method)
+        end_opt = time.time()
+        rq = res.x[:4]
+        rq = rq/np.linalg.norm(rq)
+        rt = res.x[4:]
+        data_log_meshk.append( [rq.dot(true_q),np.linalg.norm(rt-t)] )
+    else:
+        def loss_mesh_k2(x):
+            qs = x[:3]
+            ts = x[3:]
+            qs[-1] += 1e-9
+            angle = np.linalg.norm(qs)
+            axis = qs/angle
+            Ms = transforms3d.axangles.axangle2mat(axis,angle)
+            tpts =  (source_centered) @ Ms.T + sourcemean - ts
+            return -gm_mesh_kmeans.score(tpts)
+        start_opt = time.time()
+        res = opt.minimize(loss_mesh_k2,np.array([0,0,0,0,0,0]),method=method)
+        end_opt = time.time()
 
+        rq = res.x[:3]
+        rq[-1] += 1e-9
+
+        angle = np.linalg.norm(rq)
+        axis = rq/angle
+        rq = transforms3d.quaternions.axangle2quat(axis,angle)
+        rt = res.x[3:]
+        data_log_meshk.append( [rq.dot(true_q),np.linalg.norm(rt-t)] )
     icp_t = np.zeros(3)
     R = np.identity(3)
     source2 = np.copy(source)
