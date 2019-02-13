@@ -14,13 +14,13 @@ from pycpd import rigid_registration
 import time
 
 SAMPLE_NUM = 250
-method = None#'CG'#None#'CG'#None#CG'
-K = 100
+method = 'CG'#None#'CG'#None#'CG'#None#CG'
+K = 25
 SAMPLE_PTS = 453 # number of vertecies!
 ICP_ITERS = 50000 #150
 ICP_THRESH = 1e-9
 CPD_THRESH = 1e-9
-CPD_ITERS = 300 #500
+CPD_ITERS = 50 #500
 mesh0 = pymesh.load_mesh("bunny/bun_zipper_res4.ply")
 mesh_pts = pymesh.load_mesh("bunny/bun_zipper_res4_sds.ply")
 #mesh0 = pymesh.load_mesh("bunny/bun_zipper.ply") 
