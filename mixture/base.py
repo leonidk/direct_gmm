@@ -12,7 +12,7 @@ from time import time
 
 import numpy as np
 
-import cluster
+from sklearn import cluster
 from sklearn.base import BaseEstimator
 from sklearn.base import DensityMixin
 from sklearn.externals import six

@@ -2,7 +2,6 @@ import numpy as np
 from scipy.stats import multivariate_normal as mvn_pdf
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-from cluster import MiniBatchKMeans
 from mixture import GaussianMixture
 from scipy.spatial.distance import cdist,pdist
 import pymesh
@@ -13,14 +12,14 @@ import transforms3d
 from pycpd import rigid_registration
 import time
 
-SAMPLE_NUM = 250
-method = 'CG'#None#'CG'#None#'CG'#None#CG'
-K = 25
+SAMPLE_NUM = 25
+method = None#'CG'#None#'CG'#None#CG'
+K = 100
 SAMPLE_PTS = 453 # number of vertecies!
 ICP_ITERS = 50000 #150
 ICP_THRESH = 1e-9
 CPD_THRESH = 1e-9
-CPD_ITERS = 50 #500
+CPD_ITERS = 150 #500
 mesh0 = pymesh.load_mesh("bunny/bun_zipper_res4.ply")
 mesh_pts = pymesh.load_mesh("bunny/bun_zipper_res4_sds.ply")
 #mesh0 = pymesh.load_mesh("bunny/bun_zipper.ply") 
@@ -38,9 +37,21 @@ def get_centroids(mesh):
     areas = np.linalg.norm(np.cross(ABAC[:,0,:],ABAC[:,1,:]),axis=1)/2.0
     return centroids, areas
 
+def get_tri_covar(tris):
+    covars = []
+    for face in face_vert:
+        A = face[0][:,None]
+        B = face[1][:,None]
+        C = face[2][:,None]
+        M = (A+B+C)/3
+        covars.append(A @ A.T + B @ B.T + C @ C.T - 3* M @ M.T)
+    return np.array(covars)*(1/12.0)
+
 com,a = get_centroids(mesh0)
 print(com.shape)
 face_vert = mesh0.vertices[mesh0.faces.reshape(-1),:].reshape((mesh0.faces.shape[0],3,-1))
+data_covar = get_tri_covar(face_vert)
+print(data_covar.shape)
 
 indices2 = np.random.randint(0,mesh_pts.vertices.shape[0],SAMPLE_PTS)
 samples_for_icp = mesh0.vertices#np.copy(mesh_pts.vertices[indices2])
@@ -54,11 +65,11 @@ gm_std = GaussianMixture(K,init_params='random',tol=1e-5,max_iter=100); gm_std.f
 print((time.time()-t1)*1000)
 t1 = time.time()
 #indices3 = np.random.randint(0,mesh0.vertices.shape[0],SAMPLE_PTS)
-gm_mesh = GaussianMixture(K,init_params='random',tol=1e-5,max_iter=100); gm_mesh.set_triangles(face_vert); gm_mesh.fit(com); gm_mesh.set_triangles(None)
+gm_mesh = GaussianMixture(K,init_params='random',tol=1e-5,max_iter=100); gm_mesh.set_covars(data_covar); gm_mesh.set_areas(a); gm_mesh.fit(com); gm_mesh.set_covars(None);  gm_mesh.set_areas(None)
 print((time.time()-t1)*1000)
 t1 = time.time()
 #indices3 = np.random.randint(0,mesh0.vertices.shape[0],SAMPLE_PTS)
-gm_mesh_kmeans = GaussianMixture(K,init_params='kmeans',tol=1e-5,max_iter=100); gm_mesh_kmeans.set_triangles(face_vert); gm_mesh_kmeans.fit(com); gm_mesh_kmeans.set_triangles(None)
+gm_mesh_kmeans = GaussianMixture(K,init_params='kmeans',tol=1e-5,max_iter=100); gm_mesh_kmeans.set_covars(data_covar); gm_mesh_kmeans.set_areas(a); gm_mesh_kmeans.fit(com); gm_mesh_kmeans.set_covars(None); gm_mesh_kmeans.set_areas(None)
 print((time.time()-t1)*1000)
 
 data_log_mesh = []
