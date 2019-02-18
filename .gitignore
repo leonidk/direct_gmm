@@ -5,9 +5,12 @@ __pycache__/
 # extras
 .vscode/
 .DS_Store
+*.png
+*.pdf
+old_stuff/
 # C extensions
 *.so
-
+*.csv
 # Distribution / packaging
 .Python
 env/
