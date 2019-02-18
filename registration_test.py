@@ -39,7 +39,7 @@ def get_centroids(mesh):
 
 def get_tri_covar(tris):
     covars = []
-    for face in face_vert:
+    for face in tris:
         A = face[0][:,None]
         B = face[1][:,None]
         C = face[2][:,None]

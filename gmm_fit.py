@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import multivariate_normal as mvn_pdf
 
 import matplotlib.pyplot as plt
-from cluster import MiniBatchKMeans
+from sklearn.cluster import MiniBatchKMeans
 from mixture import GaussianMixture
 import pymesh
 
@@ -69,6 +69,16 @@ mesh3 = pymesh.load_mesh("bunny/bun_zipper_pds_1000_1.ply")
 #mesh3 = pymesh.load_mesh("bunny/bun_zipper_res4_pds.ply")
 mesh4 = pymesh.load_mesh("bunny/bun_zipper_50k.ply")
 
+def get_tri_covar(tris):
+    covars = []
+    for face in tris:
+        A = face[0][:,None]
+        B = face[1][:,None]
+        C = face[2][:,None]
+        M = (A+B+C)/3
+        covars.append(A @ A.T + B @ B.T + C @ C.T - 3* M @ M.T)
+    return np.array(covars)*(1/12.0)
+
 def get_centroids(mesh):
     # obtain a vertex for each face index
     face_vert = mesh.vertices[mesh.faces.reshape(-1),:].reshape((mesh.faces.shape[0],3,-1))
@@ -83,18 +93,23 @@ com,a,fv2 = get_centroids(mesh1)
 
 a = a/a.min()
 aa = aa/aa.min()
+
+data_covar1 = get_tri_covar(fv1)
+
+data_covar2 = get_tri_covar(fv2)
+
 #verts = mesh2.vertices#[np.random.choice(mesh2.vertices.shape[0], com.shape[0], replace=False), :]
 #res  = compute_gmm(com,100,a)
 #res2 = compute_gmm(verts,100)
 #raise
-with open('bunny_fit_week2-4r4.log','w') as fout:
-    for km in [6,12,25,50,100,200,400,800]:
-        for init in ['random']:
+with open('bunny_fit_monday_subsamples.log','w') as fout:
+    for km in [6,12,25,50,100,200,400]:
+        for init in ['random','kmeans']:
             for exp_n in range(10):
-                gm0 = GaussianMixture(km,init_params=init); gm0.set_triangles(fv1); gm0.fit(coma); gm0.set_triangles(None)
-                gm1 = GaussianMixture(km,init_params=init); gm1.set_triangles(fv2); gm1.fit(com); gm1.set_triangles(None)
-                gm2 = GaussianMixture(km,init_params=init); gm2.fit(mesh3.vertices)
-                gm3 = GaussianMixture(km,init_params=init); gm3.fit(mesh2.vertices)
+                gm0 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-9); gm0.set_covars(data_covar1); gm0.set_areas(aa); gm0.fit(coma); gm0.set_covars(None);  gm0.set_areas(None)
+                gm1 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-9); gm1.set_covars(data_covar2); gm1.set_areas(a); gm1.fit(com); gm1.set_covars(None);  gm1.set_areas(None)
+                gm2 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-9); gm2.fit(mesh3.vertices)
+                gm3 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-9); gm3.fit(mesh2.vertices)
 
                 #gm3 = GaussianMixture(100); gm3.fit(mesh4.vertices)
                 #print(coma.shape[0],com.shape[0],mesh2.vertices.shape[0],mesh3.vertices.shape[0])

@@ -2,7 +2,6 @@ import numpy as np
 from scipy.stats import multivariate_normal as mvn_pdf
 
 import matplotlib.pyplot as plt
-from cluster import MiniBatchKMeans
 from mixture import GaussianMixture
 import pymesh
 
@@ -19,17 +18,27 @@ def get_centroids(mesh):
     areas = np.linalg.norm(np.cross(ABAC[:,0,:],ABAC[:,1,:]),axis=1)/2.0
     return centroids, areas
 
+def get_tri_covar(tris):
+    covars = []
+    for face in tris:
+        A = face[0][:,None]
+        B = face[1][:,None]
+        C = face[2][:,None]
+        M = (A+B+C)/3
+        covars.append(A @ A.T + B @ B.T + C @ C.T - 3* M @ M.T)
+    return np.array(covars)*(1/12.0)
 com,a = get_centroids(mesh0)
 face_vert = mesh0.vertices[mesh0.faces.reshape(-1),:].reshape((mesh0.faces.shape[0],3,-1))
+data_covar = get_tri_covar(face_vert)
 
-with open('bunny_1k_com_verts_tri2.log','w') as fout:
+with open('bunny_1k_com_verts_monday.log','w') as fout:
     for km in [6,12,25,50,100,200,400]:
         for init in ['kmeans','random']:
             for exp_n in range(8):
-                gm3 = GaussianMixture(km,init_params=init); gm3.set_triangles(face_vert); gm3.fit(com); gm3.set_triangles(None)
-                gm0 = GaussianMixture(km,init_params=init); gm0.set_areas(a); gm0.fit(com); gm0.set_areas(None)
-                gm1 = GaussianMixture(km,init_params=init); gm1.fit(com)
-                gm2 = GaussianMixture(km,init_params=init); gm2.fit(mesh0.vertices)
+                gm3 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-9); gm3.set_covars(data_covar); gm3.set_areas(a); gm3.fit(com); gm3.set_covars(None);  gm3.set_areas(None)
+                gm0 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-9); gm0.set_areas(a); gm0.fit(com); gm0.set_areas(None)
+                gm1 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-9); gm1.fit(com)
+                gm2 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-9); gm2.fit(mesh0.vertices)
                 #gm3 = GaussianMixture(km,init_params=init,max_iter=25,tol=1e-4); gm3.fit(mesh2.vertices)
 
                 #gm3 = GaussianMixture(100); gm3.fit(mesh4.vertices)
