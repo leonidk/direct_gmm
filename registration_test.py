@@ -12,7 +12,7 @@ import transforms3d
 from pycpd import rigid_registration
 import time
 
-SAMPLE_NUM = 25
+SAMPLE_NUM = 250
 method = None#'CG'#None#'CG'#None#CG'
 K = 100
 SAMPLE_PTS = 453 # number of vertecies!
@@ -72,10 +72,14 @@ t1 = time.time()
 gm_mesh_kmeans = GaussianMixture(K,init_params='kmeans',tol=1e-5,max_iter=100); gm_mesh_kmeans.set_covars(data_covar); gm_mesh_kmeans.set_areas(a); gm_mesh_kmeans.fit(com); gm_mesh_kmeans.set_covars(None); gm_mesh_kmeans.set_areas(None)
 print((time.time()-t1)*1000)
 
+
+gm_areas_kmeans = GaussianMixture(K,init_params='kmeans',tol=1e-5,max_iter=100);  gm_areas_kmeans.set_areas(a); gm_areas_kmeans.fit(com);  gm_areas_kmeans.set_areas(None)
+
 data_log_mesh = []
 data_log_meshk = []
 data_log_verts = []
 data_log_vertsk = []
+data_log_areas = []
 data_log_icp = []
 data_log_cpd = []
 data_log_oracle = []
@@ -169,6 +173,22 @@ for n in range(SAMPLE_NUM):
     rq = rq/np.linalg.norm(rq)
     rt = res.x[4:]
     data_log_vertsk.append( [rq.dot(true_q),np.linalg.norm(rt-t)] )
+
+    def loss_areas_k(x):
+        qs = x[:4]
+        ts = x[4:]
+        qs = qs/np.linalg.norm(qs)
+        Ms = transforms3d.quaternions.quat2mat(qs)
+        tpts =  (source_centered) @ Ms.T + sourcemean - ts
+        return -gm_areas_kmeans.score(tpts)
+    start_opt = time.time()
+    res = opt.minimize(loss_areas_k,np.array([1,0,0,0,0,0,0]),method=method)
+    end_opt = time.time()
+    rq = res.x[:4]
+    rq = rq/np.linalg.norm(rq)
+    rt = res.x[4:]
+    data_log_areas.append( [rq.dot(true_q),np.linalg.norm(rt-t)] )
+
     if True:
         def loss_mesh_k2(x):
             qs = x[:4]
@@ -286,3 +306,4 @@ if len(data_log_verts) > 0 :
     np.savetxt('cpd2.csv',np.array(data_log_cpd),delimiter=',')
     np.savetxt('oracle2.csv',np.array(data_log_oracle),delimiter=',')
     np.savetxt('meshk2.csv',np.array(data_log_meshk),delimiter=',')
+    np.savetxt('areas2.csv',np.array(data_log_areas),delimiter=',')
