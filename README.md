@@ -3,7 +3,7 @@ This is the source code and project history for the following publication
 **Direct Fitting of Gaussian Mixture Models** by Leonid Keselman and Martial Hebert [arXiv](https://arxiv.org/abs/1904.05537)
 
 ## Overview
-Almost all files used in the development and testing of this project are in this folder. The data files (Stanford Bunny, TUM datset, etc.) are excluded as I'm unsure about the licensing. Important files are 
+Almost all files used in the development and testing of this project are in this folder. The data files for the Stanford Bunny is included in `bunny`. 
 
 * `mixture` contains the modifed version of scikit-learn with the proposed techniques. 
 * `gmm_fit.py` and `gmm_fit2.py contain the two sets of the bunny likelihood experiments
