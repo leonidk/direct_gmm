@@ -1,7 +1,7 @@
 # direct_gmm
 This is the source code and project history for the following publication
 
-**Direct Fitting of Gaussian Mixture Models** by Leonid Keselman and Martial Hebert [arXiv](https://arxiv.org/abs/1904.05537)
+**Direct Fitting of Gaussian Mixture Models** by Leonid Keselman and Martial Hebert ([arXiv version here](https://arxiv.org/abs/1904.05537))
 
 ## Overview
 Almost all files used in the development and testing of this project are in this folder. The data files for the Stanford Bunny is included in `bunny`. 
