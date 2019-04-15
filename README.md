@@ -1,5 +1,6 @@
 # direct_gmm
 This is the source code and project history for the following publication
+
 **Direct Fitting of Gaussian Mixture Models** by Leonid Keselman and Martial Hebert [arXiv](https://arxiv.org/abs/1904.05537)
 
 ## Overview
