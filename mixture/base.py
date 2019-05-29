@@ -145,7 +145,7 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
 
         if self.init_params == 'kmeans':
             resp = np.zeros((n_samples, self.n_components))
-            label = cluster.MiniBatchKMeans(n_clusters=self.n_components, n_init=1,
+            label = cluster.MiniBatchKMeans(n_clusters=self.n_components, n_init=1,batch_size=150,
                                    random_state=random_state).fit(X).labels_
             resp[np.arange(n_samples), label] = 1
         elif self.init_params == 'random':
@@ -249,7 +249,7 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
                 change = lower_bound - prev_lower_bound
                 self._print_verbose_msg_iter_end(n_iter, change)
 
-                if abs(change) < self.tol:
+                if False and abs(change) < self.tol:
                     self.converged_ = True
                     break
 

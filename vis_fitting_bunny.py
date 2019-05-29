@@ -100,9 +100,9 @@ for iteration in range(150):
     labels /= labels.sum(1,keepdims=True)
 
     if (iteration % 1) == 0:
-        fig = plt.figure(figsize=plt.figaspect(2.0),frameon=False)
+        fig = plt.figure(figsize=plt.figaspect(0.5),frameon=False)
 
-        ax = fig.add_subplot(2,1, 1, projection='3d')
+        ax = fig.add_subplot(1,2, 1, projection='3d')
 
         #colors = [tuple(int(h[i:i+2], 16) for i in (0, 2, 4)) for h in ['CA3542','27646B']]
         #colors = np.array(colors)/255
@@ -128,7 +128,7 @@ for iteration in range(150):
         plt.title('E-Step Result',size=24,weight='demibold')
         plt.tight_layout()
 
-        ax = fig.add_subplot(2,1, 2, projection='3d')
+        ax = fig.add_subplot(1,2, 2, projection='3d')
 
         for k in range(len(new_means)):
             mean,covar = new_means[k],new_covars[k]
@@ -168,5 +168,5 @@ for iteration in range(150):
         plt.title('M-Step Result',size=24,weight='demibold')
         plt.tight_layout()
         #plt.show()
-        plt.savefig('output2/{:02d}.png'.format(iteration),dpi=300,pad_inches=0)
+        plt.savefig('output4/{:02d}.png'.format(iteration),dpi=300,pad_inches=0)
         plt.close('all')

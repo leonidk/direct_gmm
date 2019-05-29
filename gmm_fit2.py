@@ -31,7 +31,7 @@ com,a = get_centroids(mesh0)
 face_vert = mesh0.vertices[mesh0.faces.reshape(-1),:].reshape((mesh0.faces.shape[0],3,-1))
 data_covar = get_tri_covar(face_vert)
 
-with open('bunny_1k_com_verts_monday_25.log','w') as fout:
+with open('bunny_1k_com_verts_tuesday_25.log','w') as fout:
     for km in [6,12,25,50,100,200,400]:
         for init in ['kmeans','random']:
             for exp_n in range(10):
