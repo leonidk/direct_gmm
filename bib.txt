@@ -1,0 +1,8 @@
+
+@InProceedings{keselman2019directgmm,
+    author    = {Leonid Keselman and Martial Hebert},
+    title     = {Direct Fitting of Gaussian Mixture Models},
+    booktitle = {Conference on Computer and Robot Vision (CRV)},
+    year      = {2019},
+    doi       = {10.1109/CRV.2019.00012}}
+}
