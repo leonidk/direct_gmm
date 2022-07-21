@@ -1,4 +1,4 @@
-# direct_gmm
+# [Direct Fitting of GMMs project website](https://leonidk.github.io/direct_gmm/)
 This is the source code and project history for the following publication
 
 **Direct Fitting of Gaussian Mixture Models** by Leonid Keselman and Martial Hebert ([arXiv version here](https://arxiv.org/abs/1904.05537))
